@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/ugur10/go-cli-task-manager/db"
 )
 
 var rootCmd = &cobra.Command{
@@ -59,6 +60,14 @@ func init() {
 }
 
 func main() {
+	// Initialize database
+	if err := db.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize database: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Execute CLI commands
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
