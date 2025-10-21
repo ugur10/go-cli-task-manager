@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/ugur10/go-cli-task-manager/db"
@@ -15,12 +16,33 @@ var rootCmd = &cobra.Command{
 It allows you to add, list, complete, and delete tasks with SQLite persistence.`,
 }
 
+var (
+	// Flag for add command
+	taskDescription string
+)
+
 var addCmd = &cobra.Command{
 	Use:   "add [task title]",
 	Short: "Add a new task",
 	Long:  `Add a new task with a title and optional description.`,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Add command - Coming soon!")
+		// Join all arguments to form the title
+		title := strings.Join(args, " ")
+
+		// Add task to database
+		task, err := db.AddTask(title, taskDescription)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error adding task: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("✓ Task added successfully!\n")
+		fmt.Printf("  ID: %d\n", task.ID)
+		fmt.Printf("  Title: %s\n", task.Title)
+		if task.Description != "" {
+			fmt.Printf("  Description: %s\n", task.Description)
+		}
 	},
 }
 
@@ -29,7 +51,41 @@ var listCmd = &cobra.Command{
 	Short: "List all tasks",
 	Long:  `Display all tasks with their completion status.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("List command - Coming soon!")
+		// Get all tasks from database
+		tasks, err := db.GetAllTasks()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error retrieving tasks: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Check if there are no tasks
+		if len(tasks) == 0 {
+			fmt.Println("No tasks found. Add one with: taskman add \"Your task\"")
+			return
+		}
+
+		// Display tasks
+		fmt.Println("\nYour Tasks:")
+		fmt.Println(strings.Repeat("─", 80))
+		for _, task := range tasks {
+			// Status indicator
+			status := "[ ]"
+			if task.Completed {
+				status = "[✓]"
+			}
+
+			// Format the date
+			dateStr := task.CreatedAt.Format("2006-01-02 15:04")
+
+			// Print task info
+			fmt.Printf("%s ID: %-3d | %s\n", status, task.ID, task.Title)
+			if task.Description != "" {
+				fmt.Printf("    Description: %s\n", task.Description)
+			}
+			fmt.Printf("    Created: %s\n", dateStr)
+			fmt.Println(strings.Repeat("─", 80))
+		}
+		fmt.Printf("\nTotal: %d task(s)\n", len(tasks))
 	},
 }
 
@@ -52,6 +108,9 @@ var deleteCmd = &cobra.Command{
 }
 
 func init() {
+	// Add description flag to add command
+	addCmd.Flags().StringVarP(&taskDescription, "description", "d", "", "Task description")
+
 	// Add subcommands to root
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(listCmd)

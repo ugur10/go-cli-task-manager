@@ -92,3 +92,61 @@ func Close() error {
 func GetDB() *sql.DB {
 	return database
 }
+
+// AddTask creates a new task in the database
+func AddTask(title, description string) (*Task, error) {
+	query := `INSERT INTO tasks (title, description, completed, created_at)
+	          VALUES (?, ?, 0, ?)`
+
+	now := time.Now()
+	result, err := database.Exec(query, title, description, now)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert task: %w", err)
+	}
+
+	// Get the ID of the newly created task
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	task := &Task{
+		ID:          int(id),
+		Title:       title,
+		Description: description,
+		Completed:   false,
+		CreatedAt:   now,
+	}
+
+	return task, nil
+}
+
+// GetAllTasks retrieves all tasks from the database
+func GetAllTasks() ([]Task, error) {
+	query := `SELECT id, title, description, completed, created_at
+	          FROM tasks
+	          ORDER BY created_at DESC`
+
+	rows, err := database.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []Task
+	for rows.Next() {
+		var task Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Completed, &task.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+		tasks = append(tasks, task)
+	}
+
+	// Check for errors from iterating over rows
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating tasks: %w", err)
+	}
+
+	return tasks, nil
+}
