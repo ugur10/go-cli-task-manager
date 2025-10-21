@@ -150,3 +150,47 @@ func GetAllTasks() ([]Task, error) {
 
 	return tasks, nil
 }
+
+// CompleteTask marks a task as completed by its ID
+func CompleteTask(id int) error {
+	query := `UPDATE tasks SET completed = 1 WHERE id = ?`
+
+	result, err := database.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to complete task: %w", err)
+	}
+
+	// Check if any row was actually updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("task with ID %d not found", id)
+	}
+
+	return nil
+}
+
+// DeleteTask removes a task from the database by its ID
+func DeleteTask(id int) error {
+	query := `DELETE FROM tasks WHERE id = ?`
+
+	result, err := database.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete task: %w", err)
+	}
+
+	// Check if any row was actually deleted
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("task with ID %d not found", id)
+	}
+
+	return nil
+}

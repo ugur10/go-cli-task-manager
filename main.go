@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -93,8 +94,23 @@ var completeCmd = &cobra.Command{
 	Use:   "complete [task id]",
 	Short: "Mark a task as complete",
 	Long:  `Mark a task as completed by providing its ID.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Complete command - Coming soon!")
+		// Parse task ID from argument
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid task ID '%s'. Please provide a valid number.\n", args[0])
+			os.Exit(1)
+		}
+
+		// Mark task as complete in database
+		err = db.CompleteTask(id)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("✓ Task %d marked as complete!\n", id)
 	},
 }
 
@@ -102,8 +118,23 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete [task id]",
 	Short: "Delete a task",
 	Long:  `Remove a task from the database by providing its ID.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Delete command - Coming soon!")
+		// Parse task ID from argument
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid task ID '%s'. Please provide a valid number.\n", args[0])
+			os.Exit(1)
+		}
+
+		// Delete task from database
+		err = db.DeleteTask(id)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("✓ Task %d deleted successfully!\n", id)
 	},
 }
 
